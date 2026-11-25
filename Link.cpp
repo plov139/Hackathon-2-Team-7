@@ -77,10 +77,10 @@ static double LatencyOf(int tech) {
   return 10.0; }
 }
 
-// RELAYS: number of relay towers needed for a link of this length.
-// How it works: split the link into segments the size of the range,
-// the towers BETWEEN the segments are the relays.
-// Example: 14 km with range 3 km = ceil(14/3) = 5 segments, so 4 relays.
+// number of relay towers needed for a link of this length
+// it split the link into segments the size of the range
+// the towers BETWEEN the segments are the relays
+// Example 14 km with range 3 km = 14/3 = 5 segments, so 4 relays
 static int RelaysFor(double km, int tech) {
  int segments = (int)ceil(km / RangeOf(tech));
  int r = segments - 1;
@@ -90,11 +90,6 @@ static int RelaysFor(double km, int tech) {
  return r;
 }
 
-// -----------------------------------------------------------------------
-// CONSTRUCTOR
-// "Link::" means "this function belongs to the Link class".
-// Copies the inputs into the variables, then calculates every result ONCE
-// and stores it, so GetCost() etc. just hand back the saved number.
 Link::Link(int f, int t, int techType, double length, double mb, int newT) {
  from = f;
  to = t;
@@ -103,7 +98,7 @@ Link::Link(int f, int t, int techType, double length, double mb, int newT) {
  messageMB = mb;
  newTowers = newT;
  relays = RelaysFor(km, tech);
- cost = CostIf(tech);         // uses the cost formula for THIS link's tech
+ cost = CostIf(tech);   
  timeMs = TimeIf(tech);
  power = PowerIf(tech);
  capacity = CapacityIf(tech);
