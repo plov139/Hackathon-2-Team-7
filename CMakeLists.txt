@@ -10,6 +10,7 @@ FetchContent_MakeAvailable(raylib)
 
 # ==========================================================
 #  class demo: example.cpp
+#  (your copy said "add_executable(example main.cpp)" -- it must be example.cpp)
 # ==========================================================
 add_executable(example example.cpp)
 target_link_libraries(example PRIVATE raylib)
@@ -21,5 +22,7 @@ target_link_libraries(example PRIVATE raylib)
 # ==========================================================
 add_executable(main
     main.cpp
+    Tower.cpp
+    Link.cpp
 )
 target_link_libraries(main PRIVATE raylib)
