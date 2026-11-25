@@ -536,5 +536,3 @@ int main() {
  PrintReceipt(towers, links, messageMB);
  return 0;
 }
- return 0;
-}
