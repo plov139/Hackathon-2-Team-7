@@ -1,28 +1,15 @@
 /*
 HOW TO PLAY
  type the size of your message
- click any point, it becomes the start point (yellow)
- press 4 for 4G (blue) or 5 for 5G (green)
+ click any point, it becomes the start point yellow
+ press 4 for 4G blue or 5 for 5G green
  click a gray point, a link is built from the point with the white rings,
  the new point gets the colour of the link
  keep clicking, cost, time, power and capacity add up
  U = undo last link
  I or the INFO button = open the "how this applies to the real world" screen
- ESC = on the map: close the window and print a receipt
-       on the info screen: go back to the map
-
-HOW THE PROGRAM WORKS (big picture):
- 1. In terminal asks for the message size and later prints each link and a
-    final receipt.
- 2. A raylib WINDOW shows the map. raylib redraws the screen about 60 times
-    a second inside a "game loop". Every pass through the loop does:
-        a) read input (mouse and keys)
-        b) update the data (towers, links, totals)
-        c) draw everything
- 3. A true/false variable (showInfo) decides if the loop shows the MAP
-    screen or the INFO screen.
- 4. The Tower class (Tower.h/.cpp) and Link class (Link.h/.cpp) hold the data
-    and math. This file connects them together.
+ ESC = on the map close the window and print a receipt
+       on the info screen go back to the map
 */
 #include <iostream>
 #include <vector>
@@ -33,11 +20,8 @@ HOW THE PROGRAM WORKS (big picture):
 #include "Link.h"
 using namespace std;
 
-// ---------------------------------------------------------------------
-// MAP DATA
-// ---------------------------------------------------------------------
 
-// MakeTowers: creates the 16 towers (A to P) at fixed pixel positions and
+// creates the 16 towers at fixed positions and
 // puts them in a vector, towers index in this list is how Links refer to them
 vector<Tower> MakeTowers() {
  vector<Tower> towers;
@@ -69,17 +53,13 @@ double DistanceKm(Tower a, Tower b) {
  return pixels * 0.075;
 }
 
-// ---------------------------------------------------------------------
-// FORMATTING HELPERS (turn numbers into nice text)
-// ---------------------------------------------------------------------
-
 /*
 Round1 turns a number into text with one decimal for example 14.83 makes 14.8.
 It adding 0.05 first makes it ROUND instead of cut off
 (int) removes the decimals to get the whole part, then we pull out the
 first decimal digit by hand
 */ 
-string Round1(double value) {
+string Round(double value) {
  value = value + 0.05;
  int whole = (int)value;
  int tenth = (int)((value - whole) * 10);
@@ -89,7 +69,7 @@ string Round1(double value) {
 // 4500 ms becomes 4.5 s, 450 ms stays 450 ms
 string FormatTime(double ms) {
  if (ms >= 1000) {
-  return Round1(ms / 1000) + " s";
+  return Round(ms / 1000) + " s";
  } else {
   return to_string((int)ms) + " ms";
  }
@@ -102,7 +82,7 @@ string FormatCost(double cost) {
 
 // 123.4 becomes 123.4 kWh
 string FormatPower(double kwh) {
- return Round1(kwh) + " kWh";
+ return Round(kwh) + " kWh";
 }
 
 // 350.0 becomes 350 Mbps
@@ -128,26 +108,21 @@ Color TechColor(int tech) {
  }
 }
 
-// ---------------------------------------------------------------------
-// INFO SCREEN helpers
-// ---------------------------------------------------------------------
 
-// one line of text on the info screen, with how it should look.
-// A struct is like a tiny class that just groups variables together.
 struct InfoLine {
  string text;
- int size;    // font size
+ int size;    
  Color color;
- int gap;     // empty space above this line
+ int gap;   
 };
 
 /* 
-raylibs DrawText does not wrap long text 
-walk through the text one character at a time, collecting
-letters into a word. When we hit a space, we try adding the
-word to the current line. MeasureText tells us how wide that line
-would be in pixels. If it is wider than maxWidth, we save the current line
-and start a new one with the word. Returns the list of finished lines.
+DrawText does not wrap long text 
+walk through the text one character at a time, collecting letters into a word 
+When we hit a space we try adding the word to the current line 
+MeasureText tells us how wide that line would be in pixels
+if it is wider than maxWidth we save the current line and start a new one with the word 
+returns the list of finished lines
 */
 vector<InfoLine> WrapText(string text, int size, Color color, int gap, int maxWidth) {
  vector<InfoLine> lines;
@@ -164,7 +139,6 @@ vector<InfoLine> WrapText(string text, int size, Color color, int gap, int maxWi
     }
     attempt = attempt + word;
     if (MeasureText(attempt.c_str(), size) > maxWidth && current != "") {
-     // save the line so far, start a new line with this word
      int lineGap = 0;
      if (first == true) {
       lineGap = gap;
@@ -173,12 +147,12 @@ vector<InfoLine> WrapText(string text, int size, Color color, int gap, int maxWi
      first = false;
      current = word;
     } else {
-     current = attempt; // it fits keep going
+     current = attempt; 
     }
     word = "";
    }
   } else {
-   word = word + text[i]; // normal letter add to the word
+   word = word + text[i]; 
   }
  }
  if (current != "") {
@@ -192,7 +166,7 @@ vector<InfoLine> WrapText(string text, int size, Color color, int gap, int maxWi
 }
 
 /*
-builds the whole info page as a list of InfoLines.
+builds the whole info page as a list of InfoLines
 we list every heading and paragraph with a kind
 0 = big heading, 1 = sub heading, 2 = body text, then we wrap each one
 with the right size and color and join all the lines into one big list
@@ -242,10 +216,6 @@ vector<InfoLine> MakeInfoLines(int maxWidth) {
  return all;
 }
 
-// ---------------------------------------------------------------------
-// TERMINAL OUTPUT
-// ---------------------------------------------------------------------
-
 /*
 prints the final summary after the window is closed
 loop over every link and add up the real totals, and add up
@@ -254,20 +224,19 @@ that gives the 4G vs 5G comparison, which is our take on efficiency
 */
 void PrintReceipt(vector<Tower> towers, vector<Link> links, double messageMB) {
 
- // nothing built, nothing to add up
+ // if nothing built
  if (links.size() == 0) {
   cout << " You built no links. A network that does not exist costs 0 k$." << endl;
   return;
  }
 
- // running totals start at 0, add each link inside the loop
  double total = 0;
  double totalTime = 0;
  double totalPower = 0;
  double totalCapacity = 0;
  int relays = 0;
- double cost4 = 0;   // the same links if all were 4G
- double cost5 = 0;   // the same links if all were 5G
+ double cost4 = 0;  
+ double cost5 = 0; 
  double time4 = 0;
  double time5 = 0;
  double power4 = 0;
@@ -290,7 +259,7 @@ void PrintReceipt(vector<Tower> towers, vector<Link> links, double messageMB) {
   cap5 = cap5 + links[i].CapacityIf(5);
  }
 
- cout << " Message size: " << Round1(messageMB) << " MB" << endl;
+ cout << " Message size: " << Round(messageMB) << " MB" << endl;
  cout << " Links built: " << links.size() << endl;
  cout << " Relay towers the map never shows: " << relays << endl;
  cout << " Total cost: " << FormatCost(total) << endl;
@@ -304,7 +273,7 @@ void PrintReceipt(vector<Tower> towers, vector<Link> links, double messageMB) {
       << ", " << FormatPower(power5) << ", " << FormatCapacity(cap5) << endl;
  cout << endl;
 
- // towers still gray were never connected, who got left out
+ // towers still gray were never connected 
  cout << "Points that were left out: ";
  for (int i = 0; i < (int)towers.size(); i++) {
   if (towers[i].GetState() == 0) {
@@ -314,92 +283,73 @@ void PrintReceipt(vector<Tower> towers, vector<Link> links, double messageMB) {
  cout << endl;
 }
 
-// ---------------------------------------------------------------------
-// MAIN
-// ---------------------------------------------------------------------
+
 int main() {
- // ----- SET UP (terminal) -----
- // Ask for the message size. If the user types 0 or a negative number
- // we use 20 MB as a default.
+ // Ask for the message size if the user types 0 or a negative number
+ // we use 20 MB as a default
  double messageMB;
- cout << "All prices, speeds, power and capacity are ASSUMPTIONS. Money is in k$ (thousands of dollars)." << endl;
+ cout << "Money is in k$ (thousands of dollars)" << endl;
  cout << "How big is the message you want to send, in MB? ";
  cin >> messageMB;
  if (messageMB <= 0) {
   messageMB = 20;
  }
 
- // ----- DATA -----
- vector<Tower> towers = MakeTowers();  // the 16 towers
- vector<Link> links;                   // links the player has built, in order
- int startIndex = -1;  // which tower is the START. -1 means "not chosen yet"
- int current = -1;     // the tower the NEXT link starts from 
- int tech = 4;         // 4 or 5, used for the NEXT link
- string message = "";  // short message shown at the bottom of the panel
- int mapHeight = 600;  // the map is above this line, the info panel below
+ vector<Tower> towers = MakeTowers();
+ vector<Link> links;
+ int startIndex = -1;
+ int current = -1;
+ int tech = 4;
+ string message = "";
+ int mapHeight = 600;  
  int windowW = 1200;
  int windowH = 780;
- bool showInfo = false; // false = map screen, true = info screen
- bool quit = false;     // set to true when ESC is pressed on the map
- float scroll = 0;      // how far the info text is scrolled down 
+ bool showInfo = false; 
+ bool quit = false;
+ float scroll = 0; 
 
- // ----- WINDOW -----
  InitWindow(windowW, windowH, "map");
- SetTargetFPS(60); // the loop below runs at most 60 times per second
- // By default raylib closes the window on ESC. We turn that off so that ESC
- // can mean go back on the info screen. We handle ESC ourselves below
+ SetTargetFPS(60);
+ // By default the window closes on ESC
+ // We turn that off so that ESC can mean go back on the info screen
  SetExitKey(KEY_NULL);
 
- Color background = {15, 18, 26, 255}; // blue 
-
- // We use the same rectangle to draw the button and to check if it was clicked
+ Color background = {15, 18, 26, 255}; 
  Rectangle infoButton = {600, (float)mapHeight + 64, 130, 30};
  Rectangle backButton = {1040, 16, 130, 36};
 
- // ----- PREPARE THE INFO SCREEN -----
  vector<InfoLine> infoLines = MakeInfoLines(1100);
- int infoTop = 70; // text area starts this far down
- int infoViewHeight = windowH - infoTop - 10; // visible height of the text area
- // add up the height of every line to know how tall the whole text is
+ int infoTop = 70; 
+ int infoViewHeight = windowH - infoTop - 10; 
  int infoTotalHeight = 20;
  for (int i = 0; i < (int)infoLines.size(); i++) {
   infoTotalHeight = infoTotalHeight + infoLines[i].gap + infoLines[i].size + 6;
  }
- // maxScroll = how far we may scroll: all text height minus visible height
+ // maxScroll is how far we may scroll, all text height minus visible height
  float maxScroll = (float)(infoTotalHeight - infoViewHeight);
  if (maxScroll < 0) {
-  maxScroll = 0; // text is short enough to fit, no scrolling needed
+  maxScroll = 0; 
  }
 
- // ================= THE GAME LOOP =================
- // Runs once per frame until the window's X is clicked or quit becomes true.
  while (!WindowShouldClose() && !quit) {
   Vector2 mouse = GetMousePosition();
-  bool clicked = IsMouseButtonPressed(MOUSE_BUTTON_LEFT); // true only on the frame of the click
+  bool clicked = IsMouseButtonPressed(MOUSE_BUTTON_LEFT); 
 
   if (showInfo) {
-   // ================= INFO SCREEN: input =================
-   // Scrolling: the mouse wheel gives +1 / -1 per notch, times 40 pixels.
-   // Holding the UP / DOWN keys scrolls a little every frame.
    scroll = scroll - GetMouseWheelMove() * 40;
    if (IsKeyDown(KEY_DOWN)) { scroll = scroll + 6; }
    if (IsKeyDown(KEY_UP)) { scroll = scroll - 6; }
-   // keep the scroll between the top (0) and the bottom (maxScroll)
    if (scroll < 0) { scroll = 0; }
    if (scroll > maxScroll) { scroll = maxScroll; }
-
-   // go back to the map with ESC, I, or a click on the BACK button
-   // CheckCollisionPointRec = is this point inside this rectangle?
    if (IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_I) ||
        (clicked && CheckCollisionPointRec(mouse, backButton))) {
     showInfo = false;
    }
   } else {
-   // ================= MAP SCREEN: input =================
 
    // which tower is the mouse on
-   // hovered = the tower number under the mouse or -1 for none.
-   // We only look when the mouse is above the info panel.
+   // hovered the tower number under the mouse or -1 for none
+   // we only look when the mouse is above the info panel
    int hovered = -1;
    if (mouse.y < mapHeight) {
     for (int i = 0; i < (int)towers.size(); i++) {
@@ -409,35 +359,29 @@ int main() {
     }
    }
 
-   // keys
    if (IsKeyPressed(KEY_ESCAPE)) {
-    quit = true; // ends the loop, then the receipt prints
+    quit = true;
    }
-   // open the info screen 
    if (IsKeyPressed(KEY_I) || (clicked && CheckCollisionPointRec(mouse, infoButton))) {
     showInfo = true;
-    scroll = 0;       // always start reading from the top
-    clicked = false;  // this click was for the button
+    scroll = 0; 
+    clicked = false;
    }
-   // choose the technology for the NEXT link
    if (IsKeyPressed(KEY_FOUR)) {
     tech = 4;
    }
    if (IsKeyPressed(KEY_FIVE)) {
     tech = 5;
    }
-
-   // ----- UNDO -----
-   // take the last link, turn the tower it reached back to gray
-   // and unbuilt, give the white rings back to the tower it started from
+   // take the last link turn the tower it reached back to gray
+   // and unbuilt give the white rings back to the tower it started from
    // then delete the link from the list
    if (IsKeyPressed(KEY_U)) {
     if (links.size() > 0) {
      Link last = links[links.size() - 1];
-     towers[last.GetTo()].SetState(0);     // back to gray
+     towers[last.GetTo()].SetState(0);
      towers[last.GetTo()].SetBuilt(false);
      towers[last.GetTo()].SetTime(0);
-     // newTowers == 2 means that link also built the start tower so unbuild it
      if (last.GetNewTowers() == 2) {
       towers[last.GetFrom()].SetBuilt(false);
      }
@@ -449,36 +393,28 @@ int main() {
      message = "Nothing to undo.";
     }
    }
-
-   // ----- CLICKING A TOWER -----
    if (clicked && hovered != -1) {
     if (startIndex == -1) {
-     // first click ever this tower becomes the START (yellow)
      startIndex = hovered;
      current = hovered;
      towers[hovered].SetState(1);
      message = "START is " + towers[hovered].GetName() + ". Press 4 or 5, then click another point.";
      cout << endl << "[START] " << towers[hovered].GetName() << endl;
     } else if (towers[hovered].GetState() != 0) {
-     // that tower is already connected (not gray) so refuse
      message = towers[hovered].GetName() + " is already used.";
     } else {
-     // gray tower build a new link from current to it.
      double km = DistanceKm(towers[current], towers[hovered]);
      int newTowers = 1;
      if (towers[current].IsBuilt() == false) {
       newTowers = 2;
      }
-     // the Link constructor calculates cost, time, power and capacity
      Link link(current, hovered, tech, km, messageMB, newTowers);
      links.push_back(link);
      towers[current].SetBuilt(true);
      towers[hovered].SetBuilt(true);
-     towers[hovered].SetState(tech); // new tower takes the links color
-     // time to reach the new tower = time to reach the old one + this link
+     towers[hovered].SetState(tech); 
      towers[hovered].SetTime(towers[current].GetTime() + link.GetTime());
 
-     // add up the total cost so far, to print it in the terminal
      double total = 0;
      for (int i = 0; i < (int)links.size(); i++) {
       total = total + links[i].GetCost();
@@ -486,12 +422,10 @@ int main() {
 
      message = "Built " + TechName(tech) + " link to " + towers[hovered].GetName()
                + " for " + FormatCost(link.GetCost());
-     current = hovered; // the next link starts from the tower we just reached
+     current = hovered;
     }
    }
-
-   // ----- NUMBERS FOR THE INFO PANEL -----
-   // add up every link built so far
+   // add up every link built 
    double totalCost = 0;
    double totalTime = 0;
    double totalPower = 0;
@@ -505,46 +439,35 @@ int main() {
     relayCount = relayCount + links[i].GetRelays();
    }
 
-   // ================= MAP SCREEN: drawing =================
-   // everything between BeginDrawing and EndDrawing makes up one frame
    BeginDrawing();
    ClearBackground(background);
 
-   // links first so the towers are drawn on top of the lines
    for (int i = 0; i < (int)links.size(); i++) {
     Tower a = towers[links[i].GetFrom()];
     Tower b = towers[links[i].GetTo()];
     Color c = TechColor(links[i].GetTech());
     Vector2 p1 = {a.GetX(), a.GetY()};
     Vector2 p2 = {b.GetX(), b.GetY()};
-    DrawLineEx(p1, p2, 4, c); // 4 pixel thick line
-    // label in the middle of the line, like 4G 14 km
+    DrawLineEx(p1, p2, 4, c); 
     string label = TechName(links[i].GetTech()) + " " + to_string((int)links[i].GetKm()) + " km";
     DrawText(label.c_str(), (int)((a.GetX() + b.GetX()) / 2) - 25,
              (int)((a.GetY() + b.GetY()) / 2) - 22, 12, WHITE);
    }
 
-   // towers 
    for (int i = 0; i < (int)towers.size(); i++) {
     towers[i].Draw(i == current, i == hovered);
    }
-
-   // info panel a dark rectangle across the bottom of the window
    DrawRectangle(0, mapHeight, windowW, windowH - mapHeight, {24, 28, 40, 255});
-
-   // instructions that change depending on whether a start was chosen
    if (startIndex == -1) {
     DrawText("Click a point to choose the START (yellow).", 20, mapHeight + 14, 18, WHITE);
    } else {
     DrawText("Press 4 or 5, then click a gray point.", 20, mapHeight + 14, 18, WHITE);
    }
-   // shows which technology the next link will use, in that technology's color
    string techText = "Next link: " + TechName(tech) + " (key 4 = 4G blue, key 5 = 5G green)";
    DrawText(techText.c_str(), 20, mapHeight + 42, 16, TechColor(tech));
    DrawText("U = undo last link    ESC = finish", 20, mapHeight + 68, 14, WHITE);
    DrawText(message.c_str(), 20, mapHeight + 116, 15, WHITE);
 
-   // info button a rectangle that gets lighter while the mouse is on it
    Color buttonColor = {50, 90, 160, 255};
    if (CheckCollisionPointRec(mouse, infoButton)) {
     buttonColor = {80, 130, 210, 255};
@@ -552,7 +475,6 @@ int main() {
    DrawRectangleRec(infoButton, buttonColor);
    DrawText("INFO (I)", (int)infoButton.x + 28, (int)infoButton.y + 7, 16, WHITE);
 
-   // the four big numbers on the right side of the panel
    DrawText("TOTAL COST", 760, mapHeight + 14, 14, LIGHTGRAY);
    DrawText(FormatCost(totalCost).c_str(), 760, mapHeight + 34, 30, WHITE);
    string stats = to_string((int)links.size()) + " link(s), " + to_string(relayCount) + " hidden relay tower(s)";
@@ -567,7 +489,6 @@ int main() {
    DrawText("TOTAL CAPACITY", 980, mapHeight + 104, 14, LIGHTGRAY);
    DrawText(FormatCapacity(totalCapacity).c_str(), 980, mapHeight + 124, 24, WHITE);
 
-   // legend along the bottom left what each color means
    DrawCircle(30, mapHeight + 160, 7, YELLOW);
    DrawText("start", 42, mapHeight + 152, 14, WHITE);
    DrawCircle(120, mapHeight + 160, 7, GRAY);
@@ -578,15 +499,13 @@ int main() {
    DrawText("5G", 332, mapHeight + 152, 14, WHITE);
 
    EndDrawing();
-   continue; // frame is finished skip the info-screen drawing below
+   continue; 
   }
 
-  // ================= INFO SCREEN: drawing =================
   BeginDrawing();
   ClearBackground(background);
   DrawText("How this applies to the real world", 40, 18, 30, WHITE);
 
-  // BACK button (lighter while hovered)
   Color buttonColor = {50, 90, 160, 255};
   if (CheckCollisionPointRec(mouse, backButton)) {
    buttonColor = {80, 130, 210, 255};
@@ -595,13 +514,12 @@ int main() {
   DrawText("< BACK", (int)backButton.x + 28, (int)backButton.y + 9, 18, WHITE);
   DrawText("scroll: mouse wheel or UP / DOWN keys    ESC = back", 40, 52, 12, GRAY);
 
-  // SCROLLING TEXT
-  // BeginScissorMode makes raylib only draw inside a rectangle, so text that
-  // is scrolled above the top or below the bottom gets cut off instead of
-  // drawing over the title and button.
-  // How it works: y starts at the top of the text area MINUS the scroll
-  // amount (so scrolling down moves everything up), then each line is drawn
-  // under the previous one.
+  /*
+  BeginScissorMode only draw inside a rectangle, so text that
+  is scrolled above the top or below the bottom gets cut off instead of drawing over the title and button
+  y starts at the top of the text area minus the scroll amount
+  then each line is drawn under the previous one
+  */
   BeginScissorMode(0, infoTop, windowW, infoViewHeight);
   float y = (float)infoTop - scroll;
   for (int i = 0; i < (int)infoLines.size(); i++) {
@@ -612,11 +530,11 @@ int main() {
   EndScissorMode();
   EndDrawing();
  }
-
- // ----- AFTER THE LOOP -----
- CloseWindow(); // closes the raylib window
-
+ 
+ CloseWindow(); 
  // the final receipt prints in the terminal
  PrintReceipt(towers, links, messageMB);
+ return 0;
+}
  return 0;
 }
